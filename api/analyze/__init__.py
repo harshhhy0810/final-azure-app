@@ -17,11 +17,6 @@ MAX_CHARS = 5000
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    return _json_response({
-        "endpoint_set": bool(ENDPOINT),
-        "key_set": bool(KEY),
-        "endpoint_preview": ENDPOINT[:30] if ENDPOINT else "MISSING"
-    }, 200)
     endpoint = os.environ.get("LANGUAGE_ENDPOINT", "").rstrip("/")
     key = os.environ.get("LANGUAGE_KEY", "")
     if not endpoint or not key :
