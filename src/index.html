@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Review Analyser — graded by AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board: #1E3B2F;
+    --board-line: rgba(244,241,232,0.14);
+    --chalk: #F4F1E8;
+    --chalk-dim: rgba(244,241,232,0.62);
+    --paper: #F6F4EC;
+    --paper-line: rgba(30,40,30,0.10);
+    --ink: #233326;
+    --ink-soft: #5B6B5C;
+    --highlight: #F2C84B;
+    --pos: #5E9C7C;
+    --neu: #C9A227;
+    --neg: #D9684F;
+    --rule: #B6442F;
+    --radius: 3px;
+    --display: "Special Elite", "Courier New", monospace;
+    --hand: "Caveat", cursive;
+    --body: "Work Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    font-family: var(--body);
+    color: var(--ink);
+    background: var(--board);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Hero / board ---------- */
+  .board{
+    background:
+      repeating-linear-gradient(transparent 0 38px, var(--board-line) 38px 39px),
+      var(--board);
+    color: var(--chalk);
+    padding: 64px 24px 56px;
+    text-align: center;
+    border-bottom: 6px solid #14261d;
+  }
+  .board-inner{ max-width: 720px; margin: 0 auto; }
+  .eyebrow{
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--chalk-dim);
+    margin: 0 0 18px;
+  }
+  .typewriter-title{
+    font-family: var(--display);
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-shadow: 0 0 22px rgba(244,241,232,0.18);
+  }
+  .chalk-note{
+    font-family: var(--hand);
+    font-size: 1.6rem;
+    color: var(--highlight);
+    margin: 6px 0 36px;
+    transform: rotate(-1deg);
+  }
+  .steps{
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    font-size: 0.95rem;
+    color: var(--chalk-dim);
+  }
+  .steps li{ display:flex; align-items:center; gap: 12px; }
+  .chalk-num{
+    font-family: var(--hand);
+    font-size: 1.3rem;
+    color: var(--chalk);
+    width: 28px; height: 28px;
+    border: 2px solid var(--chalk-dim);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* ---------- Desk / sheets ---------- */
+  .desk{
+    max-width: 760px;
+    margin: -28px auto 0;
+    padding: 0 20px 64px;
+    position: relative;
+  }
+  .sheet{
+    background: var(--paper);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+    padding: 28px 28px 24px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .sheet::before{
+    content:"";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 6px;
+    background: repeating-linear-gradient(90deg, transparent 0 14px, rgba(0,0,0,0.06) 14px 16px);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .sheet-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+
+  textarea{
+    width: 100%;
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--paper-line);
+    resize: vertical;
+    padding: 4px 2px 16px;
+    background-image: repeating-linear-gradient(transparent 0 31px, var(--paper-line) 31px 32px);
+  }
+  textarea:focus{ outline: 2px solid var(--highlight); outline-offset: 2px; }
+
+  .sheet-footer{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    margin-top: 16px;
+  }
+  .mono{ font-family: var(--mono); }
+  .small{ font-size: 12px; }
+  .tiny{ font-size: 10.5px; }
+  #charCount{ color: var(--ink-soft); }
+
+  .stamp-button{
+    font-family: var(--display);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    background: var(--rule);
+    color: var(--paper);
+    border: none;
+    padding: 12px 22px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 4px 0 #8a2f1d;
+  }
+  .stamp-button:hover{ transform: translateY(-1px); }
+  .stamp-button:active{ transform: translateY(2px); box-shadow: 0 1px 0 #8a2f1d; }
+  .stamp-button:focus-visible{ outline: 3px solid var(--highlight); outline-offset: 2px; }
+  .stamp-button:disabled{ opacity: 0.6; cursor: progress; }
+
+  .error-msg{
+    color: var(--neg);
+    font-family: var(--mono);
+    font-size: 12px;
+    margin: 12px 0 0;
+  }
+
+  .loading-msg{
+    text-align: center;
+    color: var(--chalk-dim);
+    margin-top: -8px;
+  }
+
+  /* ---------- Results sheet ---------- */
+  .results-sheet{
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+  }
+  .margin-rail{
+    border-right: 2px solid var(--rule);
+    padding-right: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+  .stamp{
+    font-family: var(--display);
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    color: var(--pos);
+    border: 3px solid var(--pos);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    transform: rotate(-8deg);
+    width: 100%;
+  }
+  .stamp.negative{ color: var(--neg); border-color: var(--neg); }
+  .stamp.mixed{ color: var(--neu); border-color: var(--neu); }
+  .stamp.neutral{ color: var(--ink-soft); border-color: var(--ink-soft); }
+
+  .confidence-block{ width: 100%; }
+  .confidence-block .label{ text-align:center; margin-bottom: 8px; }
+  .bars{ display:flex; flex-direction:column; gap: 6px; }
+  .bar-row{ display:flex; align-items:center; gap: 6px; }
+  .bar{ flex:1; height: 8px; background: var(--paper-line); border-radius: 4px; overflow:hidden; }
+  .bar-fill{ display:block; height:100%; width:0%; transition: width 0.4s ease; }
+  .bar-fill.pos{ background: var(--pos); }
+  .bar-fill.neu{ background: var(--neu); }
+  .bar-fill.neg{ background: var(--neg); }
+
+  .marked-text{
+    line-height: 1.7;
+    font-size: 1.02rem;
+    white-space: pre-wrap;
+  }
+  .marked-text mark{
+    background: var(--highlight);
+    color: var(--ink);
+    padding: 0 2px;
+    border-radius: 2px;
+    text-decoration: underline wavy var(--rule);
+    text-decoration-thickness: 1px;
+  }
+
+  .entities-block{ margin-top: 22px; }
+  .entity-list{ display:flex; flex-wrap: wrap; gap: 8px; }
+  .entity-chip{
+    background: var(--board);
+    color: var(--chalk);
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+  .entity-chip .cat{ color: var(--highlight); margin-left: 4px; }
+  .entity-empty{ color: var(--ink-soft); }
+
+  .foot{
+    text-align:center;
+    padding: 18px 20px 32px;
+    color: var(--chalk-dim);
+  }
+
+  @media (max-width: 560px){
+    .results-sheet{ grid-template-columns: 1fr; }
+    .margin-rail{
+      border-right: none;
+      border-bottom: 2px solid var(--rule);
+      padding-right: 0;
+      padding-bottom: 16px;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .stamp{ width: 110px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+    html{ scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="board">
+    <div class="board-inner">
+      <p class="eyebrow">Azure AI Language · Text Analytics demo</p>
+      <h1 class="typewriter-title">Review Analyser</h1>
+      <p class="chalk-note">paste a review &mdash; get it graded in real time</p>
+
+      <ol class="steps">
+        <li><span class="chalk-num">1</span> Paste any review, tweet, or comment</li>
+        <li><span class="chalk-num">2</span> We send it to Azure AI Language</li>
+        <li><span class="chalk-num">3</span> Your copy comes back marked up &amp; stamped</li>
+      </ol>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="sheet input-sheet">
+      <label for="reviewInput" class="sheet-label">Paste the review</label>
+      <textarea id="reviewInput" rows="8" placeholder="e.g. &ldquo;The battery life is incredible but the camera app crashes constantly. Customer support at Acme was friendly though.&rdquo;"></textarea>
+
+      <div class="sheet-footer">
+        <span id="charCount" class="mono small">0 characters</span>
+        <button id="analyzeBtn" class="stamp-button">
+          <span class="btn-label">Grade this review</span>
+        </button>
+      </div>
+      <p id="errorMsg" class="error-msg" hidden></p>
+    </section>
+
+    <section id="resultsSheet" class="sheet results-sheet" hidden>
+      <div class="margin-rail">
+        <div id="stampBadge" class="stamp" aria-hidden="true">PENDING</div>
+        <div class="confidence-block">
+          <p class="mono small label">confidence</p>
+          <div class="bars">
+            <div class="bar-row"><span class="mono tiny">pos</span><span class="bar"><span id="barPos" class="bar-fill pos"></span></span></div>
+            <div class="bar-row"><span class="mono tiny">neu</span><span class="bar"><span id="barNeu" class="bar-fill neu"></span></span></div>
+            <div class="bar-row"><span class="mono tiny">neg</span><span class="bar"><span id="barNeg" class="bar-fill neg"></span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <p class="sheet-label">marked-up copy</p>
+        <p id="markedText" class="marked-text"></p>
+
+        <div class="entities-block">
+          <p class="sheet-label">named entities</p>
+          <div id="entityList" class="entity-list mono small"></div>
+        </div>
+      </div>
+    </section>
+
+    <p id="loadingMsg" class="loading-msg mono small" hidden>marking up your copy…</p>
+  </main>
+
+  <footer class="foot">
+    <p class="mono tiny">Built on Azure AI Language &middot; sentiment, key phrases &amp; entities &middot; Python backend on Azure</p>
+  </footer>
+
+<script>
+  const textarea = document.getElementById('reviewInput');
+  const charCount = document.getElementById('charCount');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const loadingMsg = document.getElementById('loadingMsg');
+  const resultsSheet = document.getElementById('resultsSheet');
+  const stampBadge = document.getElementById('stampBadge');
+  const markedText = document.getElementById('markedText');
+  const entityList = document.getElementById('entityList');
+  const barPos = document.getElementById('barPos');
+  const barNeu = document.getElementById('barNeu');
+  const barNeg = document.getElementById('barNeg');
+
+  textarea.addEventListener('input', () => {
+    charCount.textContent = `${textarea.value.length} characters`;
+  });
+
+  analyzeBtn.addEventListener('click', async () => {
+    const text = textarea.value.trim();
+    errorMsg.hidden = true;
+
+    if (!text) {
+      errorMsg.textContent = 'Paste a review first — there is nothing to grade yet.';
+      errorMsg.hidden = false;
+      return;
+    }
+    if (text.length > 5000) {
+      errorMsg.textContent = 'Keep it under 5,000 characters for this demo.';
+      errorMsg.hidden = false;
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      renderResults(text, data);
+    } catch (err) {
+      errorMsg.textContent = `Could not grade this review: ${err.message}`;
+      errorMsg.hidden = false;
+      resultsSheet.hidden = true;
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  function setLoading(isLoading) {
+    analyzeBtn.disabled = isLoading;
+    loadingMsg.hidden = !isLoading;
+    analyzeBtn.querySelector('.btn-label').textContent = isLoading
+      ? 'Grading…'
+      : 'Grade this review';
+  }
+
+  function renderResults(originalText, data) {
+    const { sentiment, confidenceScores, keyPhrases, entities } = data;
+
+    stampBadge.textContent = sentiment.toUpperCase();
+    stampBadge.className = 'stamp ' + sentiment.toLowerCase();
+
+    const pos = Math.round((confidenceScores.positive || 0) * 100);
+    const neu = Math.round((confidenceScores.neutral || 0) * 100);
+    const neg = Math.round((confidenceScores.negative || 0) * 100);
+    barPos.style.width = pos + '%';
+    barNeu.style.width = neu + '%';
+    barNeg.style.width = neg + '%';
+
+    markedText.innerHTML = highlightPhrases(originalText, keyPhrases || []);
+
+    if (entities && entities.length) {
+      entityList.innerHTML = entities
+        .map(e => `<span class="entity-chip">${escapeHtml(e.text)}<span class="cat">${escapeHtml(e.category)}</span></span>`)
+        .join('');
+    } else {
+      entityList.innerHTML = '<span class="entity-empty">no named entities found</span>';
+    }
+
+    resultsSheet.hidden = false;
+    resultsSheet.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function highlightPhrases(text, phrases) {
+    if (!phrases.length) return escapeHtml(text);
+
+    const sorted = [...phrases].sort((a, b) => b.length - a.length);
+    const safe = escapeHtml(text);
+    const escapedPattern = new RegExp(
+      `(${sorted.map(p => escapeHtml(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+      'gi'
+    );
+
+    return safe.replace(escapedPattern, '<mark>$1</mark>');
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+</script>
+</body>
+</html>
