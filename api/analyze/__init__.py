@@ -17,7 +17,9 @@ MAX_CHARS = 5000
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    if not ENDPOINT or not KEY:
+    endpoint = os.environ.get("LANGUAGE_ENDPOINT", "").rstrip("/")
+    key = os.environ.get("LANGUAGE_KEY", "")
+    if not endpoint or not key :
         return _json_response(
             {"error": "Server is missing LANGUAGE_ENDPOINT / LANGUAGE_KEY environment variables."},
             500,
