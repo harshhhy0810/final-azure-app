@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --board: #1E3B2F;
+    --board: #1E3B2F; 
     --board-line: rgba(244,241,232,0.14);
     --chalk: #F4F1E8;
     --chalk-dim: rgba(244,241,232,0.62);
@@ -404,7 +404,7 @@
   }
 
   function renderResults(originalText, data) {
-    const { sentiment, confidenceScores, keyPhrases, entities } = data;
+    const { sentiment, confidenceScores, keyPhrases, entities, language, redacted_text, summary } = data;
 
     stampBadge.textContent = sentiment.toUpperCase();
     stampBadge.className = 'stamp ' + sentiment.toLowerCase();
@@ -426,6 +426,34 @@
       entityList.innerHTML = '<span class="entity-empty">no named entities found</span>';
     }
 
+    // --- DISPLAY THE NEW EXTENDED LANGUAGE METRICS ---
+    
+    // 1. Output the PII Redacted Text into your display container
+    if (redacted_text) {
+        document.getElementById('markedText').innerHTML = `
+            <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                <strong style="color: #ff6b6b; font-size: 12px; text-transform: uppercase; display: block; margin-bottom: 4px;">PII Redacted Copy:</strong>
+                <p style="margin: 0; font-family: monospace; font-size: 13px;">${escapeHtml(redacted_text)}</p>
+            </div>
+            ${highlightPhrases(originalText, keyPhrases || [])}
+        `;
+    }
+
+    // 2. Display the abstract summary text right at the top of your layout
+    if (summary) {
+        const summaryElement = document.createElement('div');
+        summaryElement.style.cssText = "margin-bottom: 15px; padding: 12px; background: rgba(0,103,184,0.1); border-left: 4px solid #0067b8; border-radius: 4px; font-size: 13px; color: #e0e0e0;";
+        summaryElement.innerHTML = `<strong>Abstractive Summary:</strong> ${escapeHtml(summary)}`;
+        
+        const sheet = document.getElementById('resultsSheet');
+        if (sheet.firstChild) sheet.insertBefore(summaryElement, sheet.firstChild);
+    }
+
+    // 3. Update your classification badge to include the detected text language
+    if (language && document.getElementById('stampBadge')) {
+        document.getElementById('stampBadge').innerHTML += ` <span style="font-size: 12px; font-weight: normal; opacity: 0.8; block-size: min-content;">(${escapeHtml(language)})</span>`;
+    }
+    
     resultsSheet.hidden = false;
     resultsSheet.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
