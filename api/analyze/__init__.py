@@ -119,11 +119,10 @@ def _run_async_language_job(text: str) -> dict:
         "analysisInput": {
             "documents": [{"id": "1", "text": text}]
         },
-        "tasks": [
+"tasks": [
             {"kind": "LanguageDetection", "taskName": "LangTask"},
-            {"kind": "PiiEntityRecognition", "taskName": "PiiTask", "parameters": {"piiCategories": ["All"]}},
-            {"kind": "AbstractiveSummarization", "taskName": "SummTask", "parameters": {"sentenceCount": 1}}
-        ]
+            {"kind": "PiiEntityRecognition", "taskName": "PiiTask", "parameters": {"piiCategories": ["All"]}}
+        ] + ([{"kind": "AbstractiveSummarization", "taskName": "SummTask", "parameters": {"sentenceCount": 1}}] if len(text.split()) > 15 else [])
     }
 
     data = json.dumps(payload).encode("utf-8")
